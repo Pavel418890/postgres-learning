@@ -1,3 +1,20 @@
+/*
+ UPSERT
+when you insert a new row into the table, pg will update the row if
+it already in exists, otherwise, it will be insert new row
+INSERT INTO table name (columns)
+VALUES (values)
+ON CONFLICT target action(
+    DO NOTHING,
+    DO UPDATE SET EXCLUDED.column = value (
+        value may be modified with condition
+        or set new value for column like new date or other
+        )
+
+    WHERE condition # similar to INSERT INTO ... IF NOT EXIST
+)
+ */
+
 SELECT first_name || ' ' || last_name full_name
 FROM actors;
 
@@ -99,7 +116,14 @@ ORDER BY movie_id;
 SELECT *
 FROM movies
 WHERE movie_lang = 'English';
-
+/*
+ logical operator
+AND OR - like and math operation multiplication and addition
+3 *<and> 1 +<or> + 2 = 5
+3 *<and>(1 +<or> 2) = 9
+AND executes first, always need using pretences for right result
+---------------------------------------
+ */
 SELECT *
 FROM movies
 WHERE movie_lang = 'Japanese'
@@ -127,6 +151,11 @@ FROM movies
 WHERE movie_lang = 'English'
    OR movie_lang = 'Chinese';
 
+/*
+ order execution
+FROM -> WHERE -> SELECT -> ORDER BY
+---------------------------------------
+ */
 SELECT *
 FROM movies
 WHERE movie_lang = 'English'
@@ -181,6 +210,12 @@ WHERE movie_length > 100;
 SELECT *
 FROM movies
 ORDER BY movie_name LIMIT 9;
+
+/*
+OFFSET <int> - value starting from row <int>
+LIMIT <int> - total number of row in result
+---------------------------------------
+ */
 
 
 SELECT *
