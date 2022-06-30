@@ -32,3 +32,12 @@ COMMIT;
 -- read skew on repeatable read
 
 --1
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+SELECT sum(amount) FROM accounts WHERE client = 'bob';
+--3
+UPDATE accounts SET amount  = amount - 600.00 WHERE id = 2;
+--5
+COMMIT;
+
+
+SELECT  * FROM accounts;

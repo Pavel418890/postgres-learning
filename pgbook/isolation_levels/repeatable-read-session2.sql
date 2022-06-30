@@ -27,3 +27,17 @@ SELECT amount FROM accounts WHERE id = 1;
 UPDATE accounts SET amount = 900.00 + 100.00 WHERE id = 1;
 -- [40001] ERROR: could not serialize access due to concurrent update
 ROLLBACK;
+
+--2 skew in repeatable read
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+SELECT sum(amount) FROM accounts WHERE client = 'bob';
+--4
+UPDATE accounts SET amount = amount - 600.00 WHERE id = 3;
+COMMIT;
+
+SELECT * FROM accounts;
+UPDATE accounts SET amount = 200.00 WHERE id = 2;
+UPDATE accounts SET amount = 700.00 WHERE id = 3;
+
+
+SELECT * FROM accounts;
