@@ -14,7 +14,7 @@ WHERE client IN (
     FROM accounts
     GROUP BY client
     HAVING sum(amount) >= 1000
-    );
+);
 --[40001] ERROR: could not serialize access due to concurrent update
 ROLLBACK;
 -----------------------------------------------------------------------
@@ -28,16 +28,16 @@ UPDATE accounts SET amount = 900.00 + 100.00 WHERE id = 1;
 -- [40001] ERROR: could not serialize access due to concurrent update
 ROLLBACK;
 
---2 skew in repeatable read
+--2 write skew in repeatable read
 BEGIN ISOLATION LEVEL REPEATABLE READ;
 SELECT sum(amount) FROM accounts WHERE client = 'bob';
 --4
 UPDATE accounts SET amount = amount - 600.00 WHERE id = 3;
 COMMIT;
 
-SELECT * FROM accounts;
-UPDATE accounts SET amount = 200.00 WHERE id = 2;
-UPDATE accounts SET amount = 700.00 WHERE id = 3;
-
-
-SELECT * FROM accounts;
+------------------------------------------------------------------------
+-- read only transaction anomaly
+--2
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+UPDATE accounts SET amount = amount - 100.00 WHERE id = 3;
+COMMIT;

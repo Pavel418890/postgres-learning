@@ -29,7 +29,7 @@ UPDATE accounts SET amount = 900.00 + 100.00 WHERE id = 1;
 COMMIT;
 ---------------------------------------------------------------------------
 
--- read skew on repeatable read
+-- write skew on repeatable read
 
 --1
 BEGIN ISOLATION LEVEL REPEATABLE READ;
@@ -40,4 +40,17 @@ UPDATE accounts SET amount  = amount - 600.00 WHERE id = 2;
 COMMIT;
 
 
-SELECT  * FROM accounts;
+-------------------------------------------------------------------------
+-- read only transaction anomaly
+
+UPDATE accounts SET amount = 900.00 WHERE id = 2;
+UPDATE accounts SET amount = 100.00 WHERE id = 3;
+
+--1
+BEGIN ISOLATION LEVEL REPEATABLE READ;
+UPDATE accounts SET amount = amount + (
+    SELECT sum(amount) FROM accounts WHERE client = 'bob'
+    ) * 0.01
+WHERE id = 2;
+--4
+COMMIT;
