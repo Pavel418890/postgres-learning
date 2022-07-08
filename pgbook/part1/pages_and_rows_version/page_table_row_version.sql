@@ -237,3 +237,64 @@ SET amount = amount - 1.00
 WHERE id = 4;
 SELECT pg_current_xact_id_if_assigned();
 COMMIT;
+/*
+
+Savepoint and Subtransaction
+Subtransaction have a own id greater then primary transaction.
+Status of subtransaction like a regular transaction will be
+written to `clog`, but hint bits in saved subtransaction
+marked as commited and aborted simultaneously. The final status
+depends on status primary transaction
+is rejected    - all will be aborted
+is success     - all will be commited
+
+Data of nested transaction located in PGDATA/pg_subtrans
+SAVEPOINT <name>    - for using nesting transaction
+if you try transaction like
+BEGIN;
+....
+BEGIN;
+the warning message will be received that transactions already in progress
+
+ */
+TRUNCATE TABLE t;
+BEGIN;
+INSERT INTO t (s)
+VALUES ('foo');
+SELECT pg_current_xact_id();
+SAVEPOINT sp;
+INSERT INTO t (s)
+VALUES ('bar');
+-- nothing changed
+SELECT pg_current_xact_id();
+SELECT *
+FROM heap_page('t', 0) AS p
+         LEFT JOIN t ON p.ctid = t.ctid;
+ROLLBACK TO sp;
+INSERT INTO t (s)
+VALUES ('xyz');
+SELECT *
+FROM heap_page('t', 0) AS p
+         LEFT JOIN t ON p.ctid = t.ctid;
+COMMIT;
+SELECT *
+FROM t;
+SELECT *
+FROM heap_page('t', 0);
+
+-- errors and operation atomicity
+-- raised error in transaction block further execution
+-- before transaction ends. Even sended commit will be rejected
+-- and rollback
+BEGIN;
+SELECT *
+FROM t;
+UPDATE t
+SET s = REPEAT('X', 1 / (id - 10))
+WHERE id IS NOT NULL;
+SELECT *
+FROM t;
+-- rollback will be received
+COMMIT;
+
+select * from heap_page('t', 0);
