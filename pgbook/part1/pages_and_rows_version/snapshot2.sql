@@ -16,3 +16,18 @@ SELECT *
 FROM accounts;
 SELECT *
 FROM heap_page('accounts', 0);
+-------------------------------------------------------------------------------------------------
+--2
+SELECT pg_current_xact_id();
+
+
+---------------------------------
+--2
+ALTER TABLE accounts
+    ALTER COLUMN amount SET NOT NULL;
+
+---------------------------
+--2 will be blocked
+ALTER TABLE accounts
+    ALTER COLUMN amount SET NOT NULL;
+

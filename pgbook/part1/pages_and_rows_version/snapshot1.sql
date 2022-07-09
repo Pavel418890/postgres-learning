@@ -1,47 +1,78 @@
 /*
- Snapshot - all `rows version` observed by a transaction in a particular
- period of a time and contains only actual data on a moment of creation
+ Itself Transaction Visibility
+ cmin cmax - inner serial number for transaction itself
+ cmin - insert operation
+ cmax - delete operation
 
- All transaction work with your own snapshot.
- At the same time different transaction see different data but consistent
- for a given period of time.
-
- Read Committed         creates snapshot before each operator;
-
- Repeatable Read        creates snapshot at start first operator and
-                        stay active till the end;
-
- Serializable           same as Repeatable Read;
-
- Snapshot is not a copy of the `rows version`,
- just a few number represent visibility of that particular `rows`
-
- Visibility of row depends on
-
- xmin           - last number of active transaction
-
- xmax           - last number of finished transaction + 1,
-                  represent the moment of creation snapshot
-                  all transaction that >= not finished or does not exists
-
- xip_list       - (x in progress list) list of active transaction
-
+ Cursor opened in transaction doesn't see changes
+ after your creation
  */
-SELECT *
+BEGIN;
+INSERT INTO accounts
+VALUES (3, 'charlie', 100.00);
+
+DECLARE c CURSOR FOR SELECT COUNT(*)
+                     FROM accounts;
+SELECT pg_current_xact_id();
+INSERT INTO accounts
+VALUES (4, 'charlie', 400.00);
+
+SELECT xmin, CASE WHEN xmin = 5490 THEN cmin END cmin, *
 FROM accounts;
-TRUNCATE TABLE accounts;
+
+FETCH c;
+
+/*
+ Transaction horizon - xmin xid number of earliest active transaction
+ in moment of creation snapshot
+ Database horizon - earliest xmin xid number in all active transactions
+all rows version that was created before that xid may be safely cleared
+
+ Repeatable Read of Serializable transaction with IDLE status hold
+ horizon and prevent cleaning rows version
+
+ ReadCommitted transaction with IDLE status also hold a horizon
+ and prevent cleaning rows version, but virtual ReadCommitted transaction
+ hold a horizon only in process execution operations
+ */
 --1
 BEGIN;
-INSERT INTO accounts (id, client, amount)
-VALUES (1, 'alice', 1000.00);
-SELECT pg_current_xact_id();
---4
+SELECT backend_xmin
+FROM pg_stat_activity
+WHERE pid = PG_BACKEND_PID();
+--3
+SELECT backend_xmin
+FROM pg_stat_activity
+WHERE pid = PG_BACKEND_PID();
+COMMIT;
+SELECT backend_xmin
+FROM pg_stat_activity
+WHERE pid = PG_BACKEND_PID();
+
+
+/*
+ Snapshot for system catalog
+
+ System catalog not used transaction or operator snapshot
+ and has own catalog snapshot including actual updates or
+ constrains
+ */
+--1
+BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+SELECT 1;
+--3
+INSERT INTO accounts (client, amount)
+VALUES ('alice', NULL);
+--ERROR: null value in column "amount" of relation "accounts" violates not-null constraint
+ROLLBACK;
+----------------------------------------------------------------------
+-- if transaction call table then updates and add constrains block
+-- until transaction finish
+--1
+BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+SELECT 1;
+SELECT *
+FROM accounts;
+--3
 COMMIT;
 
---5
-BEGIN;
-UPDATE accounts
-SET amount = amount + 100.00
-WHERE id = 2;
-SELECT pg_current_xact_id();
-COMMIT;
