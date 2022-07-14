@@ -196,7 +196,8 @@ COMMIT;
 
 /*
  Indexes
- Any indexes don't have a row version, each row present a single instance(no xmax/xmin value)
+ Any indexes don't have a row version, each row present a single instance(
+ no xmax/xmin value)
 
  Get all indexes on page
  */
