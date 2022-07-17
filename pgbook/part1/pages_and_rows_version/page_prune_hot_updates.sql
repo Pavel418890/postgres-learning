@@ -130,7 +130,7 @@ AS
 $$
 SELECT (pageno, lp)::TEXT::tid                          AS ctid,
        CASE lp_flags
-           WHEN 0 THEN 'unset'
+           WHEN 0 THEN 'unused'
            WHEN 1 THEN 'normal'
            WHEN 2 THEN 'redirected to' || lp_off
            WHEN 3 THEN 'dead'
